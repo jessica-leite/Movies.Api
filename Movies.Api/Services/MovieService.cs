@@ -35,11 +35,7 @@ namespace Movies.Api.Services
 
                 foreach (var movie in apiResponse.Results)
                 {
-                    foreach (var genreId in movie.GenreIds)
-                    {
-                        var genre = genres.FirstOrDefault(g => g.Id == genreId);
-                        movie.Genres.Add(genre.Name);
-                    }
+                    FillGenres(movie, genres);
                     movies.Add(movie);
                 }
                 apiPage++;
@@ -56,6 +52,15 @@ namespace Movies.Api.Services
             var response = JsonConvert.DeserializeObject<GenreApiResponse>(genresJson);
 
             return response.Genres;
+        }
+
+        private void FillGenres(Movie movie, IList<Genre> genres)
+        {
+            foreach (var genreId in movie.GenreIds)
+            {
+                var genre = genres.FirstOrDefault(g => g.Id == genreId);
+                movie.Genres.Add(genre.Name);
+            }
         }
     }
 }
