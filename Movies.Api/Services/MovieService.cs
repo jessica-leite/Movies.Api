@@ -1,4 +1,5 @@
-﻿using Movies.Api.Domain;
+﻿using Movies.Api.Models;
+using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
@@ -17,6 +18,8 @@ namespace Movies.Api.Services
             var response = await http.GetAsync(uri);
 
             var json = await response.Content.ReadAsStringAsync();
+
+            var apiResponse = JsonConvert.DeserializeObject<MovieDbApiResponse>(json);
 
             return null;
         }

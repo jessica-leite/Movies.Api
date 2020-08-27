@@ -1,4 +1,4 @@
-﻿using Movies.Api.Domain;
+﻿using Movies.Api.Models;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
