@@ -22,45 +22,61 @@ namespace Movies.Api.Services
         public async Task<IEnumerable<Movie>> GetUpcoming()
         {
             var genres = await GetGenres();
-            var apiResponse = new MovieDbApiResponse();
+
             var apiPage = 1;
+            var page1Uri = $"{movieUri}{apiPage}";
+
+            // first request to find out how many others (totalPages) will be needed in asynchronous mode.
+            var response = await _http.GetAsync(page1Uri);
+            var json = await response.Content.ReadAsStringAsync();
+            var apiResponse = JsonConvert.DeserializeObject<MovieDbApiResponse>(json);
+
             var movies = new List<Movie>();
-            do
+
+            // add items from page 1
+            var page1Movies = FillGenres(apiResponse.Results, genres).ToList();
+            movies.AddRange(page1Movies);
+
+            var pages = new List<int>();
+            for (int i = ++apiPage; i <= apiResponse.TotalPages; i++)
             {
-                var uri = $"{movieUri}{apiPage}";
-                var response = await _http.GetAsync(uri);
-                var json = await response.Content.ReadAsStringAsync();
+                pages.Add(i);
+            }
+            var allTasks = pages.Select(page => _http.GetAsync($"{movieUri}{page}"));
+            var allResponses = await Task.WhenAll(allTasks);
 
-                apiResponse = JsonConvert.DeserializeObject<MovieDbApiResponse>(json);
+            // add items from the remaining pages
+            foreach (var res in allResponses)
+            {
+                var jsonResult = await res.Content.ReadAsStringAsync();
+                var apiRes = JsonConvert.DeserializeObject<MovieDbApiResponse>(jsonResult);
 
-                foreach (var movie in apiResponse.Results)
-                {
-                    FillGenres(movie, genres);
-                    movies.Add(movie);
-                }
-                apiPage++;
-
-            } while (apiPage <= apiResponse.TotalPages);
+                var remainingMovies = FillGenres(apiRes.Results, genres);
+                movies.AddRange(remainingMovies);
+            }
 
             return movies;
         }
 
         private async Task<IList<Genre>> GetGenres()
         {
-            var genresResponse = await _http.GetAsync(genreUri);
-            var genresJson = await genresResponse.Content.ReadAsStringAsync();
-            var response = JsonConvert.DeserializeObject<GenreApiResponse>(genresJson);
+            var response = await _http.GetAsync(genreUri);
+            var json = await response.Content.ReadAsStringAsync();
 
-            return response.Genres;
+            return JsonConvert.DeserializeObject<GenreApiResponse>(json).Genres;
         }
 
-        private void FillGenres(Movie movie, IList<Genre> genres)
+        private IEnumerable<Movie> FillGenres(IEnumerable<Movie> movies, IList<Genre> genres)
         {
-            foreach (var genreId in movie.GenreIds)
+            foreach (var movie in movies)
             {
-                var genre = genres.FirstOrDefault(g => g.Id == genreId);
-                movie.Genres.Add(genre.Name);
+                foreach (var genreId in movie.GenreIds)
+                {
+                    var genre = genres.FirstOrDefault(g => g.Id == genreId);
+                    movie.Genres.Add(genre.Name);
+                }
             }
+            return movies;
         }
     }
 }
