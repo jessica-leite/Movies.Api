@@ -8,20 +8,30 @@ namespace Movies.Api.Services
 {
     public class MovieService : IMovieService
     {
+        private const string apiKey = "9b9442509767321935991a03c22e014f";
+        private readonly string baseUri = $"https://api.themoviedb.org/3/movie/upcoming?api_key={apiKey}&language=en-US&page=";
+
         public async Task<IEnumerable<Movie>> GetUpcoming()
         {
             var http = new HttpClient();
-            var apiKey = "9b9442509767321935991a03c22e014f";
+            var apiResponse = new MovieDbApiResponse();
+
             var apiPage = 1;
-            var uri = $"https://api.themoviedb.org/3/movie/upcoming?api_key={apiKey}&language=en-US&page={apiPage}";
+            var movies = new List<Movie>();
+            do
+            {
+                var uri = $"{baseUri}{apiPage}";
+                var response = await http.GetAsync(uri);
+                var json = await response.Content.ReadAsStringAsync();
 
-            var response = await http.GetAsync(uri);
+                apiResponse = JsonConvert.DeserializeObject<MovieDbApiResponse>(json);
+                movies.AddRange(apiResponse.Results);
 
-            var json = await response.Content.ReadAsStringAsync();
+                apiPage++;
 
-            var apiResponse = JsonConvert.DeserializeObject<MovieDbApiResponse>(json);
+            } while (apiPage <= apiResponse.TotalPages);
 
-            return null;
+            return movies;
         }
     }
 }
