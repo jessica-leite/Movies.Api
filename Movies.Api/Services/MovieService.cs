@@ -1,4 +1,5 @@
-﻿using Movies.Api.Models;
+﻿using Microsoft.Extensions.Configuration;
+using Movies.Api.Models;
 using Newtonsoft.Json;
 using System.Collections.Generic;
 using System.Linq;
@@ -9,14 +10,17 @@ namespace Movies.Api.Services
 {
     public class MovieService : IMovieService
     {
-        private const string apiKey = "9b9442509767321935991a03c22e014f";
-        private readonly string movieUri = $"https://api.themoviedb.org/3/movie/upcoming?api_key={apiKey}&language=en-US&page=";
-        private readonly string genreUri = $"https://api.themoviedb.org/3/genre/movie/list?api_key={apiKey}&language=en-US";
+        private static string _apiKey;
+        private readonly string _movieUri;
+        private readonly string _genreUri;
         private readonly HttpClient _http;
 
-        public MovieService()
+        public MovieService(IConfiguration configuration)
         {
             _http = new HttpClient();
+            _apiKey = configuration["tmdbApiKey"];
+            _movieUri = $"https://api.themoviedb.org/3/movie/upcoming?api_key={_apiKey}&language=en-US&page=";
+            _genreUri = $"https://api.themoviedb.org/3/genre/movie/list?api_key={_apiKey}&language=en-US";
         }
 
         public async Task<IEnumerable<Movie>> GetUpcoming()
@@ -24,7 +28,7 @@ namespace Movies.Api.Services
             var genres = await GetGenres();
 
             var apiPage = 1;
-            var page1Uri = $"{movieUri}{apiPage}";
+            var page1Uri = $"{_movieUri}{apiPage}";
 
             // first request to find out how many others (totalPages) will be needed in asynchronous mode.
             var response = await _http.GetAsync(page1Uri);
@@ -42,7 +46,7 @@ namespace Movies.Api.Services
             {
                 pages.Add(i);
             }
-            var allTasks = pages.Select(page => _http.GetAsync($"{movieUri}{page}"));
+            var allTasks = pages.Select(page => _http.GetAsync($"{_movieUri}{page}"));
             var allResponses = await Task.WhenAll(allTasks);
 
             // add items from the remaining pages
@@ -60,7 +64,7 @@ namespace Movies.Api.Services
 
         private async Task<IList<Genre>> GetGenres()
         {
-            var response = await _http.GetAsync(genreUri);
+            var response = await _http.GetAsync(_genreUri);
             var json = await response.Content.ReadAsStringAsync();
 
             return JsonConvert.DeserializeObject<GenreApiResponse>(json).Genres;
