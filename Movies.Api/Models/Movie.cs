@@ -18,6 +18,6 @@ namespace Movies.Api.Models
         public IList<string> Genres { get; set; }
 
         [JsonProperty("release_date")]
-        public DateTime ReleaseDate { get; set; }
+        public string ReleaseDate { get; set; }
     }
 }
