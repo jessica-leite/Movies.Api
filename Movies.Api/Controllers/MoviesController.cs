@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Movies.Api.Services;
+using System.Threading.Tasks;
 
 namespace Movies.Api.Controllers
 {
@@ -14,10 +15,12 @@ namespace Movies.Api.Controllers
             _service = service;
         }
 
-        [HttpGet]
-        public IActionResult Get()
+        [HttpGet("upcoming-releases")]
+        public async Task<IActionResult> GetUpcoming()
         {
-            return Ok();
+            var movies = await _service.GetUpcoming();
+
+            return Ok(movies);
         }
     }
 }
